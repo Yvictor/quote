@@ -1,7 +1,8 @@
 extern crate quote;
 #[macro_use]
 extern crate bencher;
-use quote::*;
+use quote::paser::bcd::*;
+
 use bencher::Bencher;
 fn benchmark_bcd2str(bencher: &mut Bencher) {
     bencher.iter(|| bcd2str(128));
