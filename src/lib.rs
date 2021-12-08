@@ -17,26 +17,74 @@ pub fn bcd2num(packbcd: u8) -> u8 {
     ((packbcd >> 4) * 10) + (packbcd & 0x0F)
 }
 
+pub fn bcdarr2num(packbcd_arr: &[u8]) -> u64 {
+    let mut num: u64 = 0;
+    for packbcd in packbcd_arr {
+        num = num * 100 + bcd2num(*packbcd) as u64;
+    }
+    num
+}
+
+pub fn price2long(packbcd_arr: [u8; 5]) -> f64 {
+    // 4ns -> 5ns when use ref
+    bcdarr2num(&packbcd_arr) as f64 / 10000.
+}
+
+pub fn volume2long(packbcd_arr: [u8; 4]) -> u64 {
+    // 2ns -> 3ns when use ref
+    bcdarr2num(&packbcd_arr)
+}
+
+
+#[cfg(test)]
+extern crate test_case;
+
 #[cfg(test)]
 mod tests {
+    use test_case::test_case;
     use super::*;
 
     #[test]
-    fn bcd2str128() {
+    fn bcd2str_test() {
         assert_eq!("80", bcd2str(128));
     }
-    #[test]
-    fn bcd2str18() {
-        assert_eq!("12", bcd2str(18));
+
+    #[test_case(18, "12"; "0x12 == 18 -> 12")]
+    #[test_case(128, "80"; "0x80 == 128 -> 80")]
+    fn bcd2str_testcase(input: u8, expected: &str) {
+        assert_eq!(expected, bcd2str(input))
     }
 
     #[test]
-    fn bcd2num128() {
+    fn bcd2num_test() {
         assert_eq!(80, bcd2num(128));
     }
 
+    #[test_case(18, 12; "0x12 == 18 -> 12")]
+    #[test_case(128, 80; "0x80 == 128 -> 80")]
+    fn bcd2num_testcase(input: u8, expected: u8) {
+        assert_eq!(expected, bcd2num(input));
+    }
+
     #[test]
-    fn bcd2num18() {
-        assert_eq!(12, bcd2num(18));
+    fn price2long_test() {
+        assert_eq!(85.2, price2long([0, 0, 133, 32, 0]));
+    }
+
+    #[test_case([0, 0, 133, 32, 0], 85.2; "0x0, 0x0, 0x85, 0x20, 0x0 -> 85.2")]
+    #[test_case([0, 133, 32, 0, 0], 8520.; "0x0, 0x85, 0x20, 0x0, 0x00 -> 8520")]
+    fn price2long_testcase(input: [u8; 5], expected: f64) {
+        assert_eq!(expected, price2long(input));
+    }
+
+    #[test]
+    fn volume2long_test() {
+        assert_eq!(2, volume2long([0, 0, 0, 2]));
+    }
+
+    #[test_case([0, 0, 0, 2], 2; "0, 0, 0, 2 -> 2")]
+    #[test_case([0, 0, 133, 32], 8520; "0, 0, 133, 32 -> 8520")]
+    fn volume2long_testcase(input: [u8; 4], expected: u64){
+        assert_eq!(expected, volume2long(input));
     }
 }
