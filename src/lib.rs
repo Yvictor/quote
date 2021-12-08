@@ -1,23 +1,42 @@
-pub fn add_two(a: i32) -> i32 {
-    a + 2
+static BCDTABLE: &'static [&str] = &[
+    "00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15",
+    "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31",
+    "32", "33", "34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46", "47",
+    "48", "49", "50", "51", "52", "53", "54", "55", "56", "57", "58", "59", "60", "61", "62", "63",
+    "64", "65", "66", "67", "68", "69", "70", "71", "72", "73", "74", "75", "76", "77", "78", "79",
+    "80", "81", "82", "83", "84", "85", "86", "87", "88", "89", "90", "91", "92", "93", "94", "95",
+    "96", "97", "98", "99",
+];
+
+pub fn bcd2str(packbcd: u8) -> &'static str {
+    let idx: usize = (((packbcd >> 4) * 10) + (packbcd & 0x0F)) as usize;
+    &BCDTABLE[idx]
+}
+
+pub fn bcd2num(packbcd: u8) -> u8 {
+    ((packbcd >> 4) * 10) + (packbcd & 0x0F)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::add_two;
+    use super::*;
 
     #[test]
-    fn add_two_and_two() {
-        assert_eq!(4, add_two(2));
+    fn bcd2str128() {
+        assert_eq!("80", bcd2str(128));
+    }
+    #[test]
+    fn bcd2str18() {
+        assert_eq!("12", bcd2str(18));
     }
 
     #[test]
-    fn add_three_and_two() {
-        assert_eq!(5, add_two(3));
+    fn bcd2num128() {
+        assert_eq!(80, bcd2num(128));
     }
 
     #[test]
-    fn one_hundred() {
-        assert_eq!(102, add_two(100));
+    fn bcd2num18() {
+        assert_eq!(12, bcd2num(18));
     }
 }

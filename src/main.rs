@@ -1,5 +1,5 @@
-use quote::add_two;
+use quote::bcd2str;
 
 fn main() {
-    println!("{}", format!("Hello, Rust! {value}", value=add_two(1)));
+    println!("{}", format!("Hello, Rust! {value}", value=bcd2str(128)));
 }
