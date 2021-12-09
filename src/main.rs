@@ -1,5 +1,6 @@
 use quote::paser::f6::bytes2f6;
 
+
 fn main() {
     let rows: [&[u8]; 2] = [
         &[
@@ -19,6 +20,9 @@ fn main() {
         ],
     ];
     for row in rows {
+        let f6 = bytes2f6(row);
+        let serialized = serde_json::to_string(&f6).unwrap();
+        println!("serialized = {}", serialized);
         println!("{:?}", bytes2f6(row));
     }
 }

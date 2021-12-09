@@ -1,25 +1,26 @@
 use crate::paser::bcd;
+use serde::{Deserialize, Serialize};
 use std::str;
 
-#[derive(Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct BidAsk {
     bid_price: [f64; 5],
     bid_volume: [u64; 5],
     ask_price: [f64; 5],
     ask_volume: [u64; 5],
 }
-#[derive(Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Tick {
     price: f64,
     volume: u64,
 }
-#[derive(Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Quote {
     bidask: BidAsk,
     tick: Tick,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct F6Header {
     mlen: u8,
     cate: u8,
@@ -41,7 +42,7 @@ pub struct F6Header {
     volsum: u64,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct F6 {
     header: F6Header,
     quote: Quote,
