@@ -31,7 +31,13 @@ pub struct F6Header {
     n_match: u8,
     n_bid: u8,
     n_ask: u8,
-    simd: bool,
+    trice: u8,
+    simulation: bool,
+    delay_open: bool,
+    dalay_close: bool,
+    auction: bool,
+    opened: bool,
+    closed: bool,
     volsum: u64,
 }
 
@@ -85,10 +91,16 @@ pub fn bytes2header(raw: &[u8]) -> F6Header {
         n_match: (fixed.bmp & 0x80) >> 7,
         n_bid: (fixed.bmp & 0x70) >> 4,
         n_ask: (fixed.bmp & 0x0E) >> 1,
-        simd: (fixed.st & 0x80) != 0,
+        trice: (fixed.ud & 0x03),
+        simulation: (fixed.st & 0x80) != 0,
+        delay_open: (fixed.st & 0x40) != 0,
+        dalay_close: (fixed.st & 0x20) != 0,
+        auction: (fixed.st & 0x10) != 0,
+        opened: (fixed.st & 0x08) != 0,
+        closed: (fixed.st & 0x04) != 0,
         volsum: bcd::bcdarr2num(&fixed.volsum),
     };
-    // println!("{:?}", header);
+    println!("{:?}", header);
     header
 }
 
@@ -166,7 +178,13 @@ mod tests {
                     n_match: 1,
                     n_bid: 5,
                     n_ask: 5,
-                    simd: false,
+                    trice: 0,
+                    simulation: false,
+                    delay_open: false,
+                    dalay_close: false,
+                    auction: false,
+                    opened: true,
+                    closed: false,
                     volsum: 6
                 },
                 quote: Quote {
@@ -210,7 +228,13 @@ mod tests {
                 n_match: 1,
                 n_bid: 5,
                 n_ask: 5,
-                simd: false,
+                trice: 0,
+                simulation: false,
+                delay_open: false,
+                dalay_close: false,
+                auction: false,
+                opened: true,
+                closed: false,
                 volsum: 6
             }
         )
