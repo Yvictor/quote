@@ -1,4 +1,5 @@
 use crate::paser::bcd;
+use std::str;
 
 #[derive(Debug, PartialEq)]
 pub struct BidAsk {
@@ -18,6 +19,79 @@ pub struct Quote {
     tick: Tick,
 }
 
+#[derive(Debug, PartialEq)]
+pub struct F6Header {
+    mlen: u8,
+    cate: u8,
+    fcode: u8,
+    fver: u8,
+    no: u64,
+    symbol: String,
+    time: String,
+    n_match: u8,
+    n_bid: u8,
+    n_ask: u8,
+    simd: bool,
+    volsum: u64,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct F6 {
+    header: F6Header,
+    quote: Quote,
+}
+
+#[repr(C)]
+#[derive(Debug, PartialEq)]
+pub struct Rawf6Fixed {
+    esc_code: u8,
+    mlen: [u8; 2],
+    cate: u8,
+    fcode: u8,
+    fver: u8,
+    no: [u8; 4],
+    symbol: [u8; 6],
+    time: [u8; 6],
+    bmp: u8,
+    ud: u8,
+    st: u8,
+    volsum: [u8; 4],
+}
+
+pub fn bytes2header(raw: &[u8]) -> F6Header {
+    let fixed = Rawf6Fixed {
+        esc_code: raw[0],
+        mlen: raw[1..3].try_into().unwrap(),
+        cate: raw[3],
+        fcode: raw[4],
+        fver: raw[5],
+        no: raw[6..10].try_into().unwrap(),
+        symbol: raw[10..16].try_into().unwrap(),
+        time: raw[16..22].try_into().unwrap(),
+        bmp: raw[22],
+        ud: raw[23],
+        st: raw[24],
+        volsum: raw[25..29].try_into().unwrap(),
+    };
+    // println!("{:?}", fixed);
+    let header = F6Header {
+        mlen: bcd::bcdarr2num(&fixed.mlen) as u8,
+        cate: *bcd::bcd2num(fixed.cate) as u8,
+        fcode: *bcd::bcd2num(fixed.fcode) as u8,
+        fver: *bcd::bcd2num(fixed.fver) as u8,
+        no: bcd::bcdarr2num(&fixed.no),
+        symbol: String::from(str::from_utf8(&fixed.symbol).unwrap()),
+        time: bcd::bcd2time(fixed.time),
+        n_match: (fixed.bmp & 0x80) >> 7,
+        n_bid: (fixed.bmp & 0x70) >> 4,
+        n_ask: (fixed.bmp & 0x0E) >> 1,
+        simd: (fixed.st & 0x80) != 0,
+        volsum: bcd::bcdarr2num(&fixed.volsum),
+    };
+    // println!("{:?}", header);
+    header
+}
+
 pub fn bytes2quote(packbcd_arr: &[u8]) -> Quote {
     let tick_raw: &[u8; 9] = &packbcd_arr[..9]
         .try_into()
@@ -31,7 +105,7 @@ pub fn bytes2quote(packbcd_arr: &[u8]) -> Quote {
         let r_raw = &ba_raw[i * 9..(i + 1) * 9];
         bid_price[i] = bcd::bcd2price(r_raw[..5].try_into().unwrap());
         bid_volume[i] = bcd::bcd2volume(r_raw[5..9].try_into().unwrap());
-        let r_raw = &ba_raw[(i+5) * 9..(i +5 +1) * 9];
+        let r_raw = &ba_raw[(i + 5) * 9..(i + 5 + 1) * 9];
         ask_price[i] = bcd::bcd2price(r_raw[..5].try_into().unwrap());
         ask_volume[i] = bcd::bcd2volume(r_raw[5..9].try_into().unwrap());
     }
@@ -49,6 +123,15 @@ pub fn bytes2quote(packbcd_arr: &[u8]) -> Quote {
     }
 }
 
+pub fn bytes2f6(raw: &[u8]) -> F6 {
+    let header = bytes2header(raw);
+    let tn = (header.n_match + header.n_bid + header.n_ask) as usize;
+    F6 {
+        header: header,
+        quote: bytes2quote(&raw[29..29 + 9 * (tn)]),
+    }
+}
+
 #[cfg(test)]
 extern crate test_case;
 
@@ -56,6 +139,82 @@ extern crate test_case;
 mod tests {
     use super::*;
     use test_case::test_case;
+
+    #[test]
+    fn bytes2f6_test() {
+        assert_eq!(
+            bytes2f6(&[
+                0x1b, 0x1, 0x31, 0x1, 0x6, 0x4, 0x0, 0x10, 0x93, 0x59, 0x39, 0x31, 0x31, 0x36,
+                0x31, 0x36, 0x9, 0x0, 0x0, 0x14, 0x8, 0x66, 0xda, 0x0, 0x8, 0x0, 0x0, 0x0, 0x6,
+                0x0, 0x0, 0x1, 0x82, 0x0, 0x0, 0x0, 0x0, 0x6, 0x0, 0x0, 0x1, 0x82, 0x0, 0x0, 0x0,
+                0x0, 0x6, 0x0, 0x0, 0x1, 0x81, 0x0, 0x0, 0x0, 0x0, 0x5, 0x0, 0x0, 0x1, 0x80, 0x0,
+                0x0, 0x0, 0x0, 0x16, 0x0, 0x0, 0x1, 0x76, 0x0, 0x0, 0x0, 0x0, 0x28, 0x0, 0x0, 0x1,
+                0x75, 0x0, 0x0, 0x0, 0x0, 0x20, 0x0, 0x0, 0x1, 0x93, 0x0, 0x0, 0x0, 0x0, 0x8, 0x0,
+                0x0, 0x1, 0x94, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x0, 0x1, 0x95, 0x0, 0x0, 0x0, 0x0,
+                0x1, 0x0, 0x0, 0x1, 0x96, 0x0, 0x0, 0x0, 0x0, 0x25, 0x0, 0x0, 0x1, 0x97, 0x0, 0x0,
+                0x0, 0x0, 0x26, 0xc6,
+            ]),
+            F6 {
+                header: F6Header {
+                    mlen: 131,
+                    cate: 1,
+                    fcode: 6,
+                    fver: 4,
+                    no: 109359,
+                    symbol: String::from("911616"),
+                    time: String::from("09:00:00.140866"),
+                    n_match: 1,
+                    n_bid: 5,
+                    n_ask: 5,
+                    simd: false,
+                    volsum: 6
+                },
+                quote: Quote {
+                    bidask: BidAsk {
+                        bid_price: [1.82, 1.81, 1.8, 1.76, 1.75],
+                        bid_volume: [6, 5, 16, 28, 20],
+                        ask_price: [1.93, 1.94, 1.95, 1.96, 1.97],
+                        ask_volume: [8, 1, 1, 25, 26],
+                    },
+                    tick: Tick {
+                        price: 1.82,
+                        volume: 6,
+                    },
+                }
+            }
+        )
+    }
+
+    #[test]
+    fn bytes2header_test() {
+        assert_eq!(
+            bytes2header(&[
+                0x1b, 0x1, 0x31, 0x1, 0x6, 0x4, 0x0, 0x10, 0x93, 0x59, 0x39, 0x31, 0x31, 0x36,
+                0x31, 0x36, 0x9, 0x0, 0x0, 0x14, 0x8, 0x66, 0xda, 0x0, 0x8, 0x0, 0x0, 0x0, 0x6,
+                0x0, 0x0, 0x1, 0x82, 0x0, 0x0, 0x0, 0x0, 0x6, 0x0, 0x0, 0x1, 0x82, 0x0, 0x0, 0x0,
+                0x0, 0x6, 0x0, 0x0, 0x1, 0x81, 0x0, 0x0, 0x0, 0x0, 0x5, 0x0, 0x0, 0x1, 0x80, 0x0,
+                0x0, 0x0, 0x0, 0x16, 0x0, 0x0, 0x1, 0x76, 0x0, 0x0, 0x0, 0x0, 0x28, 0x0, 0x0, 0x1,
+                0x75, 0x0, 0x0, 0x0, 0x0, 0x20, 0x0, 0x0, 0x1, 0x93, 0x0, 0x0, 0x0, 0x0, 0x8, 0x0,
+                0x0, 0x1, 0x94, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x0, 0x1, 0x95, 0x0, 0x0, 0x0, 0x0,
+                0x1, 0x0, 0x0, 0x1, 0x96, 0x0, 0x0, 0x0, 0x0, 0x25, 0x0, 0x0, 0x1, 0x97, 0x0, 0x0,
+                0x0, 0x0, 0x26, 0xc6,
+            ]),
+            F6Header {
+                mlen: 131,
+                cate: 1,
+                fcode: 6,
+                fver: 4,
+                no: 109359,
+                symbol: String::from("911616"),
+                time: String::from("09:00:00.140866"),
+                n_match: 1,
+                n_bid: 5,
+                n_ask: 5,
+                simd: false,
+                volsum: 6
+            }
+        )
+    }
 
     #[test]
     fn bytes2quote_test() {

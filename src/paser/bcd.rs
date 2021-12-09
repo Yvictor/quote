@@ -37,6 +37,18 @@ pub fn bcdarr2num(packbcd_arr: &[u8]) -> u64 {
     num
 }
 
+pub fn bcd2time(packbcd_arr: [u8; 6]) -> String {
+    std::format!(
+        "{}:{}:{}.{}{}{}",
+        bcd2str(packbcd_arr[0]),
+        bcd2str(packbcd_arr[1]),
+        bcd2str(packbcd_arr[2]),
+        bcd2str(packbcd_arr[3]),
+        bcd2str(packbcd_arr[4]),
+        bcd2str(packbcd_arr[5]),
+    )
+}
+
 pub fn bcd2price(packbcd_arr: [u8; 5]) -> f64 {
     // 4ns -> 5ns when use ref
     bcdarr2num(&packbcd_arr) as f64 / 10000.
