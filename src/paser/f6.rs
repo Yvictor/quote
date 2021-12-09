@@ -100,26 +100,34 @@ pub fn bytes2header(raw: &[u8]) -> F6Header {
         closed: (fixed.st & 0x04) != 0,
         volsum: bcd::bcdarr2num(&fixed.volsum),
     };
-    println!("{:?}", header);
+    // println!("{:?}", header);
     header
 }
 
-pub fn bytes2quote(packbcd_arr: &[u8]) -> Quote {
-    let tick_raw: &[u8; 9] = &packbcd_arr[..9]
-        .try_into()
-        .expect("slice with incorrect length");
-    let ba_raw: &[u8] = &packbcd_arr[9..];
+pub fn bytes2quote(packbcd_arr: &[u8], n_match: usize, n_bid: usize, n_ask: usize) -> Quote {
+    let mut tick_price = 0.0;
+    let mut tick_volume = 0;
+    if n_match > 0 {
+        let tick_raw: &[u8; 9] = &packbcd_arr[..9 * n_match].try_into().unwrap();
+        tick_price = bcd::bcd2price(tick_raw[..5].try_into().unwrap());
+        tick_volume = bcd::bcd2volume(tick_raw[5..9].try_into().unwrap());
+    }
+    let ba_raw: &[u8] = &packbcd_arr[9 * n_match..];
     let mut bid_price: [f64; 5] = [0.; 5];
     let mut bid_volume: [u64; 5] = [0; 5];
     let mut ask_price: [f64; 5] = [0.; 5];
     let mut ask_volume: [u64; 5] = [0; 5];
     for i in 0..5 {
-        let r_raw = &ba_raw[i * 9..(i + 1) * 9];
-        bid_price[i] = bcd::bcd2price(r_raw[..5].try_into().unwrap());
-        bid_volume[i] = bcd::bcd2volume(r_raw[5..9].try_into().unwrap());
-        let r_raw = &ba_raw[(i + 5) * 9..(i + 5 + 1) * 9];
-        ask_price[i] = bcd::bcd2price(r_raw[..5].try_into().unwrap());
-        ask_volume[i] = bcd::bcd2volume(r_raw[5..9].try_into().unwrap());
+        if n_bid > i {
+            let r_raw = &ba_raw[i * 9..(i + 1) * 9];
+            bid_price[i] = bcd::bcd2price(r_raw[..5].try_into().unwrap());
+            bid_volume[i] = bcd::bcd2volume(r_raw[5..9].try_into().unwrap());
+        }
+        if n_ask > i {
+            let r_raw = &ba_raw[(i + 5) * 9..(i + 5 + 1) * 9];
+            ask_price[i] = bcd::bcd2price(r_raw[..5].try_into().unwrap());
+            ask_volume[i] = bcd::bcd2volume(r_raw[5..9].try_into().unwrap());
+        }
     }
     Quote {
         bidask: BidAsk {
@@ -129,18 +137,23 @@ pub fn bytes2quote(packbcd_arr: &[u8]) -> Quote {
             ask_volume,
         },
         tick: Tick {
-            price: bcd::bcd2price(tick_raw[..5].try_into().unwrap()),
-            volume: bcd::bcd2volume(tick_raw[5..9].try_into().unwrap()),
+            price: tick_price,
+            volume: tick_volume,
         },
     }
 }
 
 pub fn bytes2f6(raw: &[u8]) -> F6 {
     let header = bytes2header(raw);
-    let tn = (header.n_match + header.n_bid + header.n_ask) as usize;
+    let (n_match, n_bid, n_ask) = (
+        header.n_match as usize,
+        header.n_bid as usize,
+        header.n_ask as usize,
+    );
+    let tn = n_match + n_bid + n_ask;
     F6 {
         header: header,
-        quote: bytes2quote(&raw[29..29 + 9 * (tn)]),
+        quote: bytes2quote(&raw[29..29 + 9 * (tn)], n_match, n_bid, n_ask),
     }
 }
 
@@ -203,6 +216,47 @@ mod tests {
         )
     }
 
+    #[test_case(&[
+        0x1b, 0x0, 0x41, 0x1, 0x6, 0x4, 0x0, 0x0, 0x0, 0x11, 0x30, 0x30, 0x36, 0x33, 0x32,
+        0x52, 0x8, 0x30, 0x0, 0x92, 0x9, 0x15, 0x10, 0x0, 0x80, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+        0x6, 0x32, 0x0, 0x0, 0x0, 0x0, 0x1, 0x25,
+    ], F6{header: F6Header {
+        mlen: 41,
+        cate: 1,
+        fcode: 6,
+        fver: 4,
+        no: 11,
+        symbol: String::from("00632R"),
+        time: String::from("08:30:00.920915"),
+        n_match: 0,
+        n_bid: 1,
+        n_ask: 0,
+        trice: 0,
+        simulation: true,
+        delay_open: false,
+        dalay_close: false,
+        auction: false,
+        opened: false,
+        closed: false,
+        volsum: 0
+        },
+        quote: Quote {
+            bidask: BidAsk {
+                bid_price: [6.32, 0.0, 0.0, 0.0, 0.0],
+                bid_volume: [1, 0, 0, 0, 0],
+                ask_price: [0.0, 0.0, 0.0, 0.0, 0.0],
+                ask_volume: [0, 0, 0, 0, 0],
+            },
+            tick: Tick {
+                price: 0.0,
+                volume: 0,
+            },
+        }
+    }; "case bid only1")]
+    fn bytes2f6_testcase(input: &[u8], expected: F6) {
+        assert_eq!(expected, bytes2f6(input))
+    }
+
     #[test]
     fn bytes2header_test() {
         assert_eq!(
@@ -240,6 +294,34 @@ mod tests {
         )
     }
 
+    #[test_case(&[
+        0x1b, 0x0, 0x41, 0x1, 0x6, 0x4, 0x0, 0x0, 0x0, 0x11, 0x30, 0x30, 0x36, 0x33, 0x32,
+        0x52, 0x8, 0x30, 0x0, 0x92, 0x9, 0x15, 0x10, 0x0, 0x80, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+        0x6, 0x32, 0x0, 0x0, 0x0, 0x0, 0x1, 0x25,
+    ], F6Header {
+        mlen: 41,
+        cate: 1,
+        fcode: 6,
+        fver: 4,
+        no: 11,
+        symbol: String::from("00632R"),
+        time: String::from("08:30:00.920915"),
+        n_match: 0,
+        n_bid: 1,
+        n_ask: 0,
+        trice: 0,
+        simulation: true,
+        delay_open: false,
+        dalay_close: false,
+        auction: false,
+        opened: false,
+        closed: false,
+        volsum: 0
+    }; "case bid only1")]
+    fn bytes2header_testcase(input: &[u8], expected: F6Header) {
+        assert_eq!(expected, bytes2header(input))
+    }
+
     #[test]
     fn bytes2quote_test() {
         assert_eq!(
@@ -255,15 +337,20 @@ mod tests {
                     volume: 2,
                 },
             },
-            bytes2quote(&[
-                0x0, 0x5, 0x52, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2, 0x0, 0x5, 0x45, 0x0, 0x0, 0x0, 0x0,
-                0x0, 0x1, 0x0, 0x5, 0x41, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x5, 0x40, 0x0, 0x0,
-                0x0, 0x0, 0x0, 0x1, 0x0, 0x5, 0x30, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2, 0x0, 0x5, 0x22,
-                0x0, 0x0, 0x0, 0x0, 0x0, 0x24, 0x0, 0x5, 0x55, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0,
-                0x5, 0x58, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x5, 0x60, 0x0, 0x0, 0x0, 0x0, 0x0,
-                0x1, 0x0, 0x5, 0x61, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2, 0x0, 0x5, 0x62, 0x0, 0x0, 0x0,
-                0x0, 0x0, 0x1
-            ])
+            bytes2quote(
+                &[
+                    0x0, 0x5, 0x52, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2, 0x0, 0x5, 0x45, 0x0, 0x0, 0x0,
+                    0x0, 0x0, 0x1, 0x0, 0x5, 0x41, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x5, 0x40,
+                    0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x5, 0x30, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2,
+                    0x0, 0x5, 0x22, 0x0, 0x0, 0x0, 0x0, 0x0, 0x24, 0x0, 0x5, 0x55, 0x0, 0x0, 0x0,
+                    0x0, 0x0, 0x1, 0x0, 0x5, 0x58, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x5, 0x60,
+                    0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x5, 0x61, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2,
+                    0x0, 0x5, 0x62, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1
+                ],
+                1,
+                5,
+                5
+            )
         );
     }
 
@@ -307,6 +394,6 @@ mod tests {
         },
     }; "case2")]
     fn bytes2quote_testcase(input: &[u8], expected: Quote) {
-        assert_eq!(expected, bytes2quote(input))
+        assert_eq!(expected, bytes2quote(input, 1, 5, 5))
     }
 }
