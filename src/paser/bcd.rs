@@ -37,12 +37,12 @@ pub fn bcdarr2num(packbcd_arr: &[u8]) -> u64 {
     num
 }
 
-pub fn price2long(packbcd_arr: [u8; 5]) -> f64 {
+pub fn bcd2price(packbcd_arr: [u8; 5]) -> f64 {
     // 4ns -> 5ns when use ref
     bcdarr2num(&packbcd_arr) as f64 / 10000.
 }
 
-pub fn volume2long(packbcd_arr: [u8; 4]) -> u64 {
+pub fn bcd2volume(packbcd_arr: [u8; 4]) -> u64 {
     // 2ns -> 3ns when use ref
     bcdarr2num(&packbcd_arr)
 }
@@ -78,24 +78,24 @@ mod tests {
     }
 
     #[test]
-    fn price2long_test() {
-        assert_eq!(85.2, price2long([0, 0, 133, 32, 0]));
+    fn bcd2price_test() {
+        assert_eq!(85.2, bcd2price([0, 0, 133, 32, 0]));
     }
 
     #[test_case([0, 0, 133, 32, 0], 85.2; "0x0, 0x0, 0x85, 0x20, 0x0 -> 85.2")]
     #[test_case([0, 133, 32, 0, 0], 8520.; "0x0, 0x85, 0x20, 0x0, 0x00 -> 8520")]
-    fn price2long_testcase(input: [u8; 5], expected: f64) {
-        assert_eq!(expected, price2long(input));
+    fn bcd2price_testcase(input: [u8; 5], expected: f64) {
+        assert_eq!(expected, bcd2price(input));
     }
 
     #[test]
-    fn volume2long_test() {
-        assert_eq!(2, volume2long([0, 0, 0, 2]));
+    fn bcd2volume_test() {
+        assert_eq!(2, bcd2volume([0, 0, 0, 2]));
     }
 
     #[test_case([0, 0, 0, 2], 2; "0, 0, 0, 2 -> 2")]
     #[test_case([0, 0, 133, 32], 8520; "0, 0, 133, 32 -> 8520")]
-    fn volume2long_testcase(input: [u8; 4], expected: u64) {
-        assert_eq!(expected, volume2long(input));
+    fn bcd2volume_testcase(input: [u8; 4], expected: u64) {
+        assert_eq!(expected, bcd2volume(input));
     }
 }
