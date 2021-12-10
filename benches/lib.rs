@@ -3,6 +3,7 @@ extern crate quote;
 extern crate bencher;
 use quote::paser::bcd::*;
 use quote::paser::f6::*;
+use quote::io::fs::*;
 
 use bencher::Bencher;
 fn benchmark_bcd2str(bencher: &mut Bencher) {
@@ -64,6 +65,12 @@ fn benchmark_bytes2f6(bencher: &mut Bencher) {
     });
 }
 
+fn benchmark_read(bencher: &mut Bencher) {
+    bencher.iter(|| {
+        read()
+    });
+}
+
 benchmark_group!(
     benches_bcd,
     benchmark_bcd2str,
@@ -73,5 +80,6 @@ benchmark_group!(
     benchmark_bytes2quote,
     benchmark_bytes2f6header,
     benchmark_bytes2f6,
+    benchmark_read,
 );
 benchmark_main!(benches_bcd);
