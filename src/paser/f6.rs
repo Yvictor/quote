@@ -125,7 +125,7 @@ pub fn bytes2quote(packbcd_arr: &[u8], n_match: usize, n_bid: usize, n_ask: usiz
             bid_volume[i] = bcd::bcd2volume(r_raw[5..9].try_into().unwrap());
         }
         if n_ask > i {
-            let r_raw = &ba_raw[(i + 5) * 9..(i + 5 + 1) * 9];
+            let r_raw = &ba_raw[(i + n_bid) * 9..(i + n_bid + 1) * 9];
             ask_price[i] = bcd::bcd2price(r_raw[..5].try_into().unwrap());
             ask_volume[i] = bcd::bcd2volume(r_raw[5..9].try_into().unwrap());
         }
@@ -363,7 +363,7 @@ mod tests {
         0x5, 0x58, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x5, 0x60, 0x0, 0x0, 0x0, 0x0, 0x0,
         0x1, 0x0, 0x5, 0x61, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2, 0x0, 0x5, 0x62, 0x0, 0x0, 0x0,
         0x0, 0x0, 0x1
-    ], Quote {
+    ], 1, 5, 5, Quote {
         bidask: BidAsk {
             bid_price: [545.0, 541.0, 540.0, 530.0, 522.0],
             bid_volume: [1, 1, 1, 2, 24],
@@ -382,7 +382,7 @@ mod tests {
         0x0, 0x20, 0x0, 0x0, 0x1, 0x93, 0x0, 0x0, 0x0, 0x0, 0x8, 0x0, 0x0, 0x1, 0x94, 0x0, 0x0,
         0x0, 0x0, 0x1, 0x0, 0x0, 0x1, 0x95, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x0, 0x1, 0x96, 0x0, 0x0,
         0x0, 0x0, 0x25, 0x0, 0x0, 0x1, 0x97, 0x0, 0x0, 0x0, 0x0, 0x26,
-    ], Quote {
+    ], 1, 5, 5, Quote {
         bidask: BidAsk {
             bid_price: [1.82, 1.81, 1.8, 1.76, 1.75],
             bid_volume: [6, 5, 16, 28, 20],
@@ -394,7 +394,28 @@ mod tests {
             volume: 6,
         },
     }; "case2")]
-    fn bytes2quote_testcase(input: &[u8], expected: Quote) {
-        assert_eq!(expected, bytes2quote(input, 1, 5, 5))
+    #[test_case(&[
+        0, 0, 7, 6, 0, 0, 0, 0, 16, 0, 0, 7, 5, 0, 0, 0, 0, 16, 0, 0, 6, 128, 0, 0, 0, 0, 2, 0, 0, 6,
+        53, 0, 0, 0, 0, 4, 0, 0, 7, 7, 0, 0, 0, 0, 16, 0, 0, 7, 8, 0, 0, 0, 0, 16, 0, 0, 7, 38, 0, 0,
+        0, 0, 64, 181, 13, 10,
+    ], 0, 3, 4, Quote {
+        bidask: BidAsk {
+            bid_price: [7.06, 7.05, 6.8, 0.0, 0.0], 
+            bid_volume: [10, 10, 2, 0, 0], 
+            ask_price: [6.35, 7.07, 7.08, 7.26, 0.0], 
+            ask_volume: [4, 10, 10, 40, 0],
+        },
+        tick: Tick {
+            price: 0.0, volume: 0
+        },
+    }; "case3")]
+    fn bytes2quote_testcase(
+        input: &[u8],
+        n_match: usize,
+        n_bid: usize,
+        n_ask: usize,
+        expected: Quote,
+    ) {
+        assert_eq!(expected, bytes2quote(input, n_match, n_bid, n_ask))
     }
 }

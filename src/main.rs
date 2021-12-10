@@ -1,7 +1,10 @@
 use quote::paser::f6::bytes2f6;
-
+// use quote::network::mcast::join_mcast;
+// use std::net::{IpAddr, Ipv4Addr};
 
 fn main() {
+    // let mcast_addr: IpAddr = IpAddr::V4(Ipv4Addr::new(224, 0, 100, 100), 10000);
+    // let socket = join_mcast(mcast_addr, );
     let rows: [&[u8]; 2] = [
         &[
             0x1b, 0x0, 0x41, 0x1, 0x6, 0x4, 0x0, 0x0, 0x0, 0x11, 0x30, 0x30, 0x36, 0x33, 0x32,
