@@ -1,6 +1,6 @@
-use std::io;
 use socket2::{Domain, Protocol, SockAddr, Socket, Type};
-use std::net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket};
+use std::io;
+use std::net::{IpAddr, SocketAddr, UdpSocket};
 // use std::time::Duration;
 
 fn new_socket(addr: &SocketAddr) -> io::Result<Socket> {
@@ -22,14 +22,17 @@ pub fn join_mcast(addr: SocketAddr, interface: SocketAddr) -> io::Result<UdpSock
     let ip_interface = interface.ip();
     let socket = new_socket(&addr).unwrap();
     match ip_arrd {
-        IpAddr::V4(ref mdns_v4) => {
-            socket.join_multicast_v4(mdns_v4, &ip_interface).unwrap();
-        }
+        IpAddr::V4(ref mdns_v4) => match ip_interface {
+            IpAddr::V4(ref if_v4) => {
+                socket.join_multicast_v4(mdns_v4, if_v4).unwrap();
+            }
+            IpAddr::V6(ref _if_v6) => (),
+        },
         IpAddr::V6(ref mdns_v6) => {
-            socket.join_multicast_v6(mdns_v6, &ip_interface).unwrap();
+            socket.join_multicast_v6(mdns_v6, 0).unwrap();
         }
     }
-    socket.bind(&SockAddr::from(addr));
+    socket.bind(&SockAddr::from(addr)).unwrap();
 
     Ok(socket.into_udp_socket())
 }
