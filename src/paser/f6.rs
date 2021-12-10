@@ -22,7 +22,7 @@ pub struct Quote {
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct F6Header {
-    mlen: u8,
+    pub mlen: u8,
     cate: u8,
     fcode: u8,
     fver: u8,
@@ -42,10 +42,16 @@ pub struct F6Header {
     volsum: u64,
 }
 
+impl F6Header {
+    pub fn n_info(&self) -> (usize, usize, usize) {
+        (*&self.n_match as usize, *&self.n_bid as usize, *&self.n_ask as usize)
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct F6 {
-    header: F6Header,
-    quote: Quote,
+    pub header: F6Header,
+    pub quote: Quote,
 }
 
 #[repr(C)]
@@ -293,6 +299,31 @@ mod tests {
                 volsum: 6
             }
         )
+    }
+
+    #[test]
+    fn f6header_n_info_test() {
+        let f6 = F6Header {
+            mlen: 131,
+            cate: 1,
+            fcode: 6,
+            fver: 4,
+            no: 109359,
+            symbol: String::from("911616"),
+            time: String::from("09:00:00.140866"),
+            n_match: 1,
+            n_bid: 5,
+            n_ask: 5,
+            trice: 0,
+            simulation: false,
+            delay_open: false,
+            dalay_close: false,
+            auction: false,
+            opened: true,
+            closed: false,
+            volsum: 6
+        };
+        assert_eq!((1, 5, 5), f6.n_info())
     }
 
     #[test_case(&[
