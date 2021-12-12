@@ -65,9 +65,14 @@ fn benchmark_bytes2f6(bencher: &mut Bencher) {
     });
 }
 
-fn benchmark_read(bencher: &mut Bencher) {
+fn benchmark_readf6file(bencher: &mut Bencher) {
+    use std::path::Path;
+    fn f6handler (f6: F6) {
+        // println!("{:?}", f6);
+    }
+    let path = Path::new("tests/data/f6_01000001_01001000_TP03.new");
     bencher.iter(|| {
-        read()
+        readf6file(&path, f6handler);
     });
 }
 
@@ -80,6 +85,6 @@ benchmark_group!(
     benchmark_bytes2quote,
     benchmark_bytes2f6header,
     benchmark_bytes2f6,
-    benchmark_read,
+    benchmark_readf6file,
 );
 benchmark_main!(benches_bcd);
