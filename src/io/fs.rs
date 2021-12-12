@@ -1,13 +1,12 @@
 use std::fs::File;
 use std::path::Path;
 use std::io::prelude::*;
-use crate::paser::f6::{bytes2quote, bytes2header, F6};
+use crate::paser::f6::{bytes2quote, bytes2header, bytes2mlen, F6};
 
 
 pub fn readf6file(path: &Path, rec_handler: fn(F6)){
     let display = path.display();
-    let mut header = [0u8; 29];
-    let mut body = [0u8; 256];
+    let mut buf = [0u8; 256];
     let mut file = match File::open(&path) {
         Err(why) => panic!("couldn't open {}: {}", display, why),
         Ok(file) => (file)
@@ -17,18 +16,17 @@ pub fn readf6file(path: &Path, rec_handler: fn(F6)){
         if file.stream_position().unwrap() == file_size {
             break
         }
-        match file.read_exact(&mut header) {
+        match file.read_exact(&mut buf[..4]) {
             Ok(_) => {
+                let mlen = bytes2mlen(&buf);
+                file.read_exact(&mut buf[4..mlen]).unwrap();
                 //print!("{} contains:\n{:?}", display, &header[..]);
-                let h = bytes2header(&header);
+                let h = bytes2header(&buf);
                 // println!("header: {:?}", h);
                 let (n_match, n_bid, n_ask) = h.n_info();
-                let body_size = (h.mlen - 29) as usize;
-                // println!("bodsize: {:?}", body_size);
-                file.read_exact(&mut body[0..body_size]).unwrap();
                 let f6 = F6 {
                     header: h,
-                    quote: bytes2quote(&body, n_match, n_bid, n_ask),
+                    quote: bytes2quote(&buf[29..mlen], n_match, n_bid, n_ask),
                 };
                 rec_handler(f6);
             }
@@ -45,7 +43,7 @@ pub fn readf6file(path: &Path, rec_handler: fn(F6)){
 #[cfg(test)]
 mod tests {
     use super::*;
-    use test_case::test_case;
+    // use test_case::test_case;
 
     #[test]
     fn read_test() {
