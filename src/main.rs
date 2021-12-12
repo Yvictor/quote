@@ -1,19 +1,20 @@
 // use quote::paser::f6::bytes2f6;
+use quote::io::fs::{readf6file, readf6filebuffer};
 use quote::paser::f6::F6;
-use quote::io::fs::readf6file;
 // use quote::network::mcast::join_mcast;
 // use std::net::{IpAddr, Ipv4Addr};
-use std::path::Path;
-use std::io::Write;
 use chrono::Local;
 use env_logger::Builder;
 use log::LevelFilter;
+use std::io::Write;
+use std::path::Path;
 // use log::info;
 
 fn main() {
     Builder::new()
         .format(|buf, record| {
-            writeln!(buf,
+            writeln!(
+                buf,
                 "{} [{}] - {}",
                 Local::now().format("%Y-%m-%dT%H:%M:%S.%f"),
                 record.level(),
@@ -22,14 +23,17 @@ fn main() {
         })
         .filter(None, LevelFilter::Info)
         .init();
-    fn f6handler (f6: F6) {
+    fn f6handler(f6: F6) {
         // println!("{:?}", f6);
     }
     let path = Path::new("tests/data/f6_01000001_01001000_TP03.new");
+    // let path = Path::new("集中市場行情格式六_04000001_04500000_TP09.new");
     let display = path.display();
     log::info!("start parsing file: {}", display);
     // readf6file(&Path::new("集中市場行情格式六_01000001_01500000_TP03.new"), f6handler);
     readf6file(&path, f6handler);
+    log::info!("readf6file");
+    readf6filebuffer(&path, f6handler);
     log::info!("finish");
     // let mcast_addr: IpAddr = IpAddr::V4(Ipv4Addr::new(224, 0, 100, 100), 10000);
     // let socket = join_mcast(mcast_addr, );

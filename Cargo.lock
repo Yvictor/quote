@@ -79,6 +79,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "filebuffer"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1b41bfe1d74263ea9d084be951077614b3b98b4e59a9dafab1467645a9e52305"
+dependencies = [
+ "libc",
+ "winapi",
+]
+
+[[package]]
 name = "float-cmp"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -238,6 +248,7 @@ dependencies = [
  "bencher",
  "chrono",
  "env_logger",
+ "filebuffer",
  "lazy_static",
  "log",
  "mockall",
