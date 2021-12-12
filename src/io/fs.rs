@@ -71,7 +71,7 @@ pub fn readf6filebuffer(path: &Path, rec_handler: fn(F6)) {
     let fsize: u64 = fbuffer.len() as u64;
     // let mut buf = [0u8; 256];
     // let mut bufarr = vec![[0u8; 256]; ((fsize / 131) + 1) as usize];
-    const BUFSIZE: usize = 10240;
+    const BUFSIZE: usize = 2048;
     let mut bufarr = [[0u8; 256]; BUFSIZE];
     let mut c = Cursor::new(fbuffer);
     c.seek(SeekFrom::Start(0)).unwrap();
