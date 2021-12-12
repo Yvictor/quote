@@ -2,9 +2,10 @@ use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
 // use std::io::prelude::*;
-use crate::paser::f6::{bytes2header, bytes2mlen, bytes2quote, F6};
+use crate::paser::f6::{bytes2header, bytes2mlen, bytes2quote, bytes2f6, F6};
 use filebuffer::FileBuffer;
 use std::io::{Cursor, Read, Seek, SeekFrom};
+use rayon::prelude::*;
 
 pub fn readf6file(path: &Path, rec_handler: fn(F6)) {
     let display = path.display();
@@ -68,24 +69,41 @@ pub fn readf6filebuffer(path: &Path, rec_handler: fn(F6)) {
     // let display = path.display();
     let fbuffer = FileBuffer::open(&path).expect("failed to open file {}");
     let fsize: u64 = fbuffer.len() as u64;
-    let mut buf = [0u8; 256];
+    // let mut buf = [0u8; 256];
+    // let mut bufarr = vec![[0u8; 256]; ((fsize / 131) + 1) as usize];
+    const BUFSIZE: usize = 10240;
+    let mut bufarr = [[0u8; 256]; BUFSIZE];
     let mut c = Cursor::new(fbuffer);
     c.seek(SeekFrom::Start(0)).unwrap();
+    let mut count = 0;
     loop {
         if c.position() == fsize {
+            bufarr[..count].into_par_iter().for_each(|x| {
+                let f6 = bytes2f6(x);
+                rec_handler(f6);
+            });
             break;
         }
-        c.read_exact(&mut buf[..4]).unwrap();
-        let mlen = bytes2mlen(&buf);
-        c.read_exact(&mut buf[4..mlen]).unwrap();
-        let h = bytes2header(&buf);
-        // println!("header: {:?}", h);
-        let (n_match, n_bid, n_ask) = h.n_info();
-        let f6 = F6 {
-            header: h,
-            quote: bytes2quote(&buf[29..mlen], n_match, n_bid, n_ask),
-        };
-        rec_handler(f6);
+        c.read_exact(&mut bufarr[count][..4]).unwrap();
+        let mlen = bytes2mlen(&bufarr[count]);
+        c.read_exact(&mut bufarr[count][4..mlen]).unwrap();
+        count += 1;
+        if count == BUFSIZE {
+            bufarr.into_par_iter().for_each(|x| {
+                let f6 = bytes2f6(&x);
+                rec_handler(f6);
+            });
+            count = 0;
+            // bufarr.push([0u8; 256]);
+        }
+        // let h = bytes2header(&buf);
+        // // println!("header: {:?}", h);
+        // let (n_match, n_bid, n_ask) = h.n_info();
+        // let f6 = F6 {
+        //     header: h,
+        //     quote: bytes2quote(&buf[29..mlen], n_match, n_bid, n_ask),
+        // };
+        // rec_handler(f6);
     }
 }
 
