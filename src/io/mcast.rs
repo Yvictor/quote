@@ -39,7 +39,7 @@ pub fn join_mcast(addr: SocketAddr, interface: SocketAddr) -> io::Result<UdpSock
     Ok(socket.into_udp_socket())
 }
 
-pub fn process(socket: UdpSocket){
+pub fn process(socket: UdpSocket, rec_handler: fn(F6)){
     let mut buf = [0u8; 4096];
     let mut c = Cursor::new(Vec::new());
     let mut header = [0u8; 29];
@@ -69,7 +69,8 @@ pub fn process(socket: UdpSocket){
                                     header: h,
                                     quote: bytes2quote(&body, n_match, n_bid, n_ask),
                                 };
-                                println!("{:?}", f6);
+                                rec_handler(f6);
+                                // println!("{:?}", f6);
                             } 
 
                         }

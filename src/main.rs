@@ -1,13 +1,13 @@
 // use quote::paser::f6::bytes2f6;
 use quote::io::fs::{readf6file, readf6filebuffer};
 use quote::paser::f6::F6;
-// use quote::network::mcast::join_mcast;
-// use std::net::{IpAddr, Ipv4Addr};
+use quote::io::mcast::{join_mcast, process};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::path::Path;
+use std::io::Write;
 use chrono::Local;
 use env_logger::Builder;
 use log::LevelFilter;
-use std::io::Write;
-use std::path::Path;
 // use log::info;
 
 fn main() {
@@ -35,8 +35,12 @@ fn main() {
     log::info!("readf6file");
     readf6filebuffer(&path, f6handler);
     log::info!("finish");
-    // let mcast_addr: IpAddr = IpAddr::V4(Ipv4Addr::new(224, 0, 100, 100), 10000);
-    // let socket = join_mcast(mcast_addr, );
+    
+    // let mcast_addr: SocketAddr = SocketAddr::new(IpAddr::from(Ipv4Addr::new(224, 0, 100, 100)), 10000);
+    // let if_addr: SocketAddr = SocketAddr::new(IpAddr::from(Ipv4Addr::new(192, 168, 32, 23)), 10000);
+    // let socket = join_mcast(mcast_addr, if_addr).unwrap();
+    // process(socket, f6handler);
+
     // let rows: [&[u8]; 2] = [
     //     &[
     //         0x1b, 0x0, 0x41, 0x1, 0x6, 0x4, 0x0, 0x0, 0x0, 0x11, 0x30, 0x30, 0x36, 0x33, 0x32,
