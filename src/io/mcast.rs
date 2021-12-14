@@ -24,6 +24,29 @@ fn new_socket(addr: &SocketAddr) -> io::Result<Socket> {
     Ok(socket)
 }
 
+#[cfg(target_os = "linux")]
+fn disable_multicast_all(udp_socket: &UdpSocket) {
+    use libc::{setsockopt, IPPROTO_IP, IP_MULTICAST_ALL, c_int, socklen_t, c_void};
+    use std::os::unix::io::AsRawFd;
+    use std::mem;
+    let raw = udp_socket.as_raw_fd();
+    unsafe {
+        let optval: libc::c_int = 0;
+        let ret = libc::setsockopt(
+            raw,
+            libc::IPPROTO_IP,
+            libc::IP_MULTICAST_ALL,
+            &optval as *const _ as *const libc::c_void,
+            mem::size_of_val(&optval) as libc::socklen_t,
+        );
+        if ret != 0 {
+            println!("error");
+        }
+    }
+}
+#[cfg(not(target_os = "linux"))]
+fn disable_multicast_all(_udp_socket: &UdpSocket) {}
+
 
 pub fn join_mcast(addr: SocketAddr, interface: SocketAddr) -> io::Result<UdpSocket> {
     let ip_arrd = addr.ip();
@@ -43,24 +66,7 @@ pub fn join_mcast(addr: SocketAddr, interface: SocketAddr) -> io::Result<UdpSock
     socket.bind(&SockAddr::from(addr)).unwrap();
     let udp_socket: UdpSocket = socket.into_udp_socket();
 
-    // use libc::{setsockopt, IPPROTO_IP, IP_MULTICAST_ALL, c_int, socklen_t, c_void};
-    // use std::os::unix::io::AsRawFd;
-    // use std::mem;
-    // let raw = udp_socket.as_raw_fd();
-    // unsafe {
-    //     let optval: libc::c_int = 0;
-    //     let ret = libc::setsockopt(
-    //         raw,
-    //         libc::IPPROTO_IP,
-    //         libc::IP_MULTICAST_ALL,
-    //         &optval as *const _ as *const libc::c_void,
-    //         mem::size_of_val(&optval) as libc::socklen_t,
-    //     );
-    //     if ret != 0 {
-    //         println!("error");
-    //         ()
-    //     }
-    // }
+    disable_multicast_all(&udp_socket);
     Ok(udp_socket)
 }
 
