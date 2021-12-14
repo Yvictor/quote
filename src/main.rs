@@ -1,17 +1,14 @@
 // use quote::paser::f6::bytes2f6;
 // use quote::io::fs::{readf6file, readf6filebuffer};
-use chrono::Local;
 use quote::io;
 use quote::io::mcast::{join_mcast, process};
-use quote::paser::f6::{F6Received, F6};
+use quote::paser::f6::F6;
 use quote::utils::{getenv, setup_log, str2ip};
-use std::io::Write;
 use std::net::SocketAddr;
-use std::path::Path;
 use std::thread;
+// use std::path::Path;
 // use std::sync::mpsc::{channel, Sender, Receiver};
 use crossbeam_channel::{bounded, Receiver, Sender};
-extern crate redis;
 
 #[macro_use]
 extern crate lazy_static;
@@ -29,7 +26,7 @@ fn main() {
     let (sender, receiver): (Sender<F6>, Receiver<F6>) = bounded(4096);
 
     let socket = join_mcast(&MCAST_ADDR, &MCAST_IF_ADDR).unwrap();
-    thread::spawn(move || {io::redis::recv_process(REDIS_URI, receiver)});
+    thread::spawn(move || io::redis::recv_process(&REDIS_URI, &receiver));
     process(socket, &sender);
 
     // let path = Path::new("tests/data/f6_01000001_01001000_TP03.new");

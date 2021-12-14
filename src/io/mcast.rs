@@ -1,12 +1,12 @@
 use socket2::{Domain, Protocol, SockAddr, Socket, Type};
 use std::io;
+use std::io::{Cursor, Read, Seek, SeekFrom};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket};
-use std::io::{Cursor, Read, Seek, SeekFrom, Write};
 // use std::sync::mpsc::Sender;
 use crossbeam_channel::Sender;
 // use std::time::Duration;
-use crate::paser::f6::{bytes2quote, bytes2header, bytes2mlen, bytes2fcode, F6};
-use chrono::prelude::{Local};
+use crate::paser::f6::{bytes2fcode, bytes2header, bytes2mlen, bytes2quote, F6};
+use chrono::prelude::Local;
 
 fn new_socket(addr: &SocketAddr) -> io::Result<Socket> {
     let domain = if addr.is_ipv4() {
@@ -26,9 +26,9 @@ fn new_socket(addr: &SocketAddr) -> io::Result<Socket> {
 
 #[cfg(target_os = "linux")]
 fn disable_multicast_all(udp_socket: &UdpSocket) {
-    use libc::{setsockopt, IPPROTO_IP, IP_MULTICAST_ALL, c_int, socklen_t, c_void};
-    use std::os::unix::io::AsRawFd;
+    use libc::{c_int, c_void, setsockopt, socklen_t, IPPROTO_IP, IP_MULTICAST_ALL};
     use std::mem;
+    use std::os::unix::io::AsRawFd;
     let raw = udp_socket.as_raw_fd();
     unsafe {
         let optval: libc::c_int = 0;
@@ -46,7 +46,6 @@ fn disable_multicast_all(udp_socket: &UdpSocket) {
 }
 #[cfg(not(target_os = "linux"))]
 fn disable_multicast_all(_udp_socket: &UdpSocket) {}
-
 
 pub fn join_mcast(addr: &SocketAddr, interface: &SocketAddr) -> io::Result<UdpSocket> {
     let ip_arrd = addr.ip();
@@ -70,7 +69,7 @@ pub fn join_mcast(addr: &SocketAddr, interface: &SocketAddr) -> io::Result<UdpSo
     Ok(udp_socket)
 }
 
-pub fn process(socket: UdpSocket, sender: &Sender<F6>){
+pub fn process(socket: UdpSocket, sender: &Sender<F6>) {
     let mut fbuffer = [0u8; 4096];
     // let mut fbuffer_ = [0u8; 4096];
     // let mut c = Cursor::new(Vec::new());
@@ -78,13 +77,12 @@ pub fn process(socket: UdpSocket, sender: &Sender<F6>){
     let filter_ip = Ipv4Addr::new(10, 3, 0, 1);
     let mut count = 0;
     let mut buf = [0u8; 512];
-    let mut break_ = false;
     loop {
         match socket.recv_from(&mut fbuffer) {
             Ok((received, rec_addr)) => {
                 let rec_ip = rec_addr.ip();
                 match rec_ip {
-                    IpAddr::V4(ref rec_ip_v4) =>{
+                    IpAddr::V4(ref rec_ip_v4) => {
                         if rec_ip_v4 == &filter_ip {
                             // println!("{:?}", rec_addr);
                             // println!("received {} bytes {:?}", received, &fbuffer[..received]);
@@ -101,7 +99,6 @@ pub fn process(socket: UdpSocket, sender: &Sender<F6>){
                                 }
                                 c.read_exact(&mut buf[..4]).unwrap();
                                 let mlen = bytes2mlen(&buf);
-                                // println!("mlen: {}", mlen);
                                 c.read_exact(&mut buf[4..mlen]).unwrap();
                                 log::debug!("record: {:?}", &buf[..mlen]);
                                 let fcode = bytes2fcode(&buf);
@@ -109,17 +106,14 @@ pub fn process(socket: UdpSocket, sender: &Sender<F6>){
                                     log::debug!("count: {}", count);
                                     let h = bytes2header(&buf);
                                     log::debug!("header: {:?}", h);
-                                    // println!("{}", count);
                                     if count == 0 {
                                         count = h.no;
                                     } else {
                                         count += 1
                                     }
-                                    // println!("{} {}", count, h.no);
                                     if count != h.no {
-                                        //break_ = true;
-                                        //break;
                                         log::error!("count: {}, no: {}", count, h.no);
+                                        count = h.no;
                                     }
                                     let (n_match, n_bid, n_ask) = h.n_info();
                                     let f6 = F6 {
@@ -127,9 +121,9 @@ pub fn process(socket: UdpSocket, sender: &Sender<F6>){
                                         quote: bytes2quote(&buf[29..mlen], n_match, n_bid, n_ask),
                                         // received: Local::now().to_rfc3339(),
                                     };
-                                    match  sender.send(f6) {
+                                    match sender.send(f6) {
                                         Ok(_) => (),
-                                        Err(e) => println!("sender error: {:?}", e)
+                                        Err(e) => println!("sender error: {:?}", e),
                                     }
                                     // sender.send(f6).unwrap();
                                     // rec_handler(&f6, count);
@@ -137,10 +131,7 @@ pub fn process(socket: UdpSocket, sender: &Sender<F6>){
                             }
                         }
                     }
-                    IpAddr::V6(ref _rec_ip_v6) => ()
-                }
-                if break_ {
-                    break;
+                    IpAddr::V6(ref _rec_ip_v6) => (),
                 }
             }
             Err(e) => println!("recv function failed: {:?}", e),

@@ -1,19 +1,17 @@
-extern crate redis;
-use redis::{Commands, Connection, Client};
-use crate::paser::f6::F6Received;
-use crossbeam_channel::{Receiver};
+use crate::paser::f6::{F6Received, F6};
 use chrono::Local;
-
+use crossbeam_channel::Receiver;
+use redis::{Client, Commands, Connection};
 
 pub fn push_f6(con: &mut Connection, key: &str, f6: F6Received) {
     let f6_serialized = serde_json::to_string(&f6).unwrap();
     // let f6_serialized = rmp_serde::to_vec(&f6).unwrap();
-    let _ : () = con.lpush(key, f6_serialized).unwrap();
+    let _: () = con.lpush(key, f6_serialized).unwrap();
     // res
 }
 
-pub fn recv_process(redis_uri: &str, receiver: &mut Receiver<F6>) {
-    let client = redis::Client::open(redis_uri).unwrap();
+pub fn recv_process(redis_uri: &str, receiver: &Receiver<F6>) {
+    let client = Client::open(redis_uri).unwrap();
     let mut con = client.get_connection().unwrap();
     loop {
         let f6 = receiver.recv().unwrap();
