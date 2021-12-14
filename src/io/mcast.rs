@@ -48,7 +48,7 @@ fn disable_multicast_all(udp_socket: &UdpSocket) {
 fn disable_multicast_all(_udp_socket: &UdpSocket) {}
 
 
-pub fn join_mcast(addr: SocketAddr, interface: SocketAddr) -> io::Result<UdpSocket> {
+pub fn join_mcast(addr: &SocketAddr, interface: &SocketAddr) -> io::Result<UdpSocket> {
     let ip_arrd = addr.ip();
     let ip_interface = interface.ip();
     let socket = new_socket(&addr).unwrap();
@@ -63,7 +63,7 @@ pub fn join_mcast(addr: SocketAddr, interface: SocketAddr) -> io::Result<UdpSock
             socket.join_multicast_v6(mdns_v6, 0).unwrap();
         }
     }
-    socket.bind(&SockAddr::from(addr)).unwrap();
+    socket.bind(&SockAddr::from(*addr)).unwrap();
     let udp_socket: UdpSocket = socket.into_udp_socket();
 
     disable_multicast_all(&udp_socket);

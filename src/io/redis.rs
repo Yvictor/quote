@@ -1,6 +1,8 @@
 extern crate redis;
 use redis::{Commands, Connection, Client};
 use crate::paser::f6::F6Received;
+use crossbeam_channel::{Receiver};
+use chrono::Local;
 
 
 pub fn push_f6(con: &mut Connection, key: &str, f6: F6Received) {
@@ -10,7 +12,18 @@ pub fn push_f6(con: &mut Connection, key: &str, f6: F6Received) {
     // res
 }
 
-
+pub fn recv_process(redis_uri: &str, receiver: &mut Receiver<F6>) {
+    let client = redis::Client::open(redis_uri).unwrap();
+    let mut con = client.get_connection().unwrap();
+    loop {
+        let f6 = receiver.recv().unwrap();
+        let f6rec = F6Received {
+            f6: f6,
+            received: Local::now().to_rfc3339(),
+        };
+        push_f6(&mut con, "f6", f6rec);
+    }
+}
 
 #[cfg(test)]
 mod tests {
