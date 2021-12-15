@@ -5,15 +5,15 @@ use chrono::Local;
 use crossbeam_channel::Receiver;
 
 
-pub struct MqttProcesser {
+pub struct MqttOutProcesser {
     host: String,
     clientid: String,
     username: String,
     password: String,
 }
 
-// impl MqttProcesser {
-//     fn new() -> MqttProcesser {
+// impl MqttOutProcesser {
+//     fn new() -> MqttOutProcesser {
 //         let create_opts = mqtt::CreateOptionsBuilder::new()
 //         .server_uri(self.host.clone())
 //         .client_id(self.clientid.clone())
@@ -23,14 +23,14 @@ pub struct MqttProcesser {
 // }
 
 
-impl OutProcesser for MqttProcesser {
+impl OutProcesser for MqttOutProcesser {
     fn recv_f6_process(&self, receiver: &Receiver<F6>){
         let create_opts = mqtt::CreateOptionsBuilder::new()
             .server_uri(self.host.clone())
             .client_id(self.clientid.clone())
             .finalize();
         
-        let mut cli = mqtt::Client::new(create_opts).unwrap();
+        let cli = mqtt::Client::new(create_opts).unwrap();
         
         // Initialize the consumer before connecting.
         // let rx = cli.start_consuming();

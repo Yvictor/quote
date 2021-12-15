@@ -2,26 +2,43 @@ use crate::paser::f6::{F6Received, F6};
 use chrono::Local;
 use crossbeam_channel::Receiver;
 use redis::{Client, Commands, Connection};
+use crate::io::OutProcesser;
+use std::cell::Cell;
 
-pub fn push_f6(con: &mut Connection, key: &str, f6: F6Received) {
-    let f6_serialized = serde_json::to_string(&f6).unwrap();
-    // let f6_serialized = rmp_serde::to_vec(&f6).unwrap();
-    let _: () = con.lpush(key, f6_serialized).unwrap();
-    // res
+pub struct RedisOutProcesser{
+    redis_uri: String,
+    conn: Cell<Connection>,
 }
 
-pub fn recv_process(redis_uri: &str, receiver: &Receiver<F6>) {
-    let client = Client::open(redis_uri).unwrap();
-    let mut con = client.get_connection().unwrap();
-    loop {
-        let f6 = receiver.recv().unwrap();
-        let f6rec = F6Received {
-            f6: f6,
-            received: Local::now().to_rfc3339(),
-        };
-        push_f6(&mut con, "f6", f6rec);
+impl RedisOutProcesser {
+    fn new(redis_uri: &str) -> RedisOutProcesser {
+        let client = Client::open(redis_uri.clone()).unwrap();
+        let mut conn = client.get_connection().unwrap();
+        RedisOutProcesser{redis_uri: String::from(redis_uri), conn: Cell::new(conn)}
+    }
+    
+    fn push_f6(&self, key: &str, f6: F6Received) {
+        let f6_serialized = serde_json::to_string(&f6).unwrap();
+        // let f6_serialized = rmp_serde::to_vec(&f6).unwrap();
+        // let mut conn: Connection = self.conn.try_into().unwrap();
+        let _: () = self.conn.lpush(key, f6_serialized).unwrap();
+        // res
     }
 }
+
+impl OutProcesser for RedisOutProcesser {
+    fn recv_f6_process(&self, receiver: &Receiver<F6>){
+        loop {
+            let f6 = receiver.recv().unwrap();
+            let f6rec = F6Received {
+                f6: f6,
+                received: Local::now().to_rfc3339(),
+            };
+            self.push_f6("f6", f6rec);
+        }
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
