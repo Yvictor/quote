@@ -19,6 +19,7 @@ rayon = "1.5.1"
 crossbeam-channel = "0.5"
 redis = "0.21.4"
 libc = "0.2"
+paho-mqtt = { git = "https://github.com/eclipse/paho.mqtt.rust.git", branch = "master" }
 
 [dev-dependencies]
 test-case = "1.2.1"
