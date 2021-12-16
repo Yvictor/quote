@@ -2,6 +2,7 @@
 // use quote::io::fs::{readf6file, readf6filebuffer};
 use quote::io;
 use quote::io::mcast::{join_mcast, process};
+use quote::io::{OutProcesser};
 use quote::paser::f6::F6;
 use quote::utils::{getenv, setup_log, str2ip};
 use std::net::SocketAddr;
@@ -25,8 +26,9 @@ fn main() {
     // let (sender, receiver): (Sender<F6>, Receiver<F6>) = channel();
     let (sender, receiver): (Sender<F6>, Receiver<F6>) = bounded(4096);
 
+    let mut redis_outp = io::redis::RedisOutProcesser::new(&REDIS_URI);
     let socket = join_mcast(&MCAST_ADDR, &MCAST_IF_ADDR).unwrap();
-    thread::spawn(move || io::redis::recv_process(&REDIS_URI, &receiver));
+    thread::spawn(move || redis_outp.recv_f6_process(&receiver));
     process(socket, &sender);
 
     // let path = Path::new("tests/data/f6_01000001_01001000_TP03.new");

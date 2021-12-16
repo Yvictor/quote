@@ -6,5 +6,5 @@ use crossbeam_channel::Receiver;
 use crate::paser::f6::F6;
 
 pub trait OutProcesser{
-    fn recv_f6_process(&self, receiver: &Receiver<F6>);
+    fn recv_f6_process(&mut self, receiver: &Receiver<F6>);
 }

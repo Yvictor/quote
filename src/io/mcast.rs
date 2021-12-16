@@ -6,7 +6,7 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket};
 use crossbeam_channel::Sender;
 // use std::time::Duration;
 use crate::paser::f6::{bytes2fcode, bytes2header, bytes2mlen, bytes2quote, F6};
-use chrono::prelude::Local;
+// use chrono::prelude::Local;
 
 fn new_socket(addr: &SocketAddr) -> io::Result<Socket> {
     let domain = if addr.is_ipv4() {
