@@ -17,7 +17,7 @@ extern crate lazy_static;
 lazy_static! {
     pub static ref MCAST_ADDR: SocketAddr = str2ip(&getenv("MCAST_GROUP", "224.0.100.100:10000"));
     pub static ref MCAST_IF_ADDR: SocketAddr =
-        str2ip(&getenv("MCAST_IF_ADDR", "224.0.100.100:10000"));
+        str2ip(&getenv("MCAST_IF_ADDR", "192.168.32.23:10000"));
     pub static ref REDIS_URI: String = getenv("REDIS_URI", "redis://127.0.0.1:6420/2");
 }
 

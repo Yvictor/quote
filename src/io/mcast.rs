@@ -26,7 +26,6 @@ fn new_socket(addr: &SocketAddr) -> io::Result<Socket> {
 
 #[cfg(target_os = "linux")]
 fn disable_multicast_all(udp_socket: &UdpSocket) {
-    use libc::{c_int, c_void, setsockopt, socklen_t, IPPROTO_IP, IP_MULTICAST_ALL};
     use std::mem;
     use std::os::unix::io::AsRawFd;
     let raw = udp_socket.as_raw_fd();
