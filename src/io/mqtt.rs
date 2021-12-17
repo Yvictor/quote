@@ -2,7 +2,8 @@ extern crate paho_mqtt as mqtt;
 use crate::io::OutProcesser;
 use crate::paser::f6::{F6Received, F6};
 use chrono::Local;
-use crossbeam_channel::Receiver;
+// use crossbeam_channel::Receiver;
+use bus::BusReader as Receiver;
 
 pub struct MqttOutProcesser {
     host: String,
@@ -60,7 +61,7 @@ impl MqttOutProcesser {
 }
 
 impl OutProcesser for MqttOutProcesser {
-    fn recv_f6_process(&mut self, receiver: &Receiver<F6>) {
+    fn recv_f6_process(&mut self, receiver: &mut Receiver<F6>) {
         loop {
             let f6 = receiver.recv().unwrap();
             let f6rec = F6Received {

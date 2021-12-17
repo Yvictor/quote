@@ -3,25 +3,25 @@ use serde::{Deserialize, Serialize};
 use std::str;
 // use chrono::prelude::{Local};
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct BidAsk {
     bid_price: [f64; 5],
     bid_volume: [u64; 5],
     ask_price: [f64; 5],
     ask_volume: [u64; 5],
 }
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Tick {
     price: f64,
     volume: u64,
 }
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Quote {
     bidask: BidAsk,
     tick: Tick,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct F6Header {
     pub mlen: u8,
     cate: u8,
@@ -49,7 +49,7 @@ impl F6Header {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct F6 {
     pub header: F6Header,
     pub quote: Quote,

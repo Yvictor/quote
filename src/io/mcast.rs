@@ -3,7 +3,8 @@ use std::io;
 use std::io::{Cursor, Read, Seek, SeekFrom};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket};
 // use std::sync::mpsc::Sender;
-use crossbeam_channel::Sender;
+// use crossbeam_channel::Sender;
+use bus::Bus as Sender;
 // use std::time::Duration;
 use crate::paser::f6::{bytes2fcode, bytes2header, bytes2mlen, bytes2quote, F6};
 // use chrono::prelude::Local;
@@ -68,7 +69,7 @@ pub fn join_mcast(addr: &SocketAddr, interface: &SocketAddr) -> io::Result<UdpSo
     Ok(udp_socket)
 }
 
-pub fn process(socket: UdpSocket, sender: &Sender<F6>) {
+pub fn process(socket: UdpSocket, sender: &mut Sender<F6>) {
     let mut fbuffer = [0u8; 4096];
     // let mut fbuffer_ = [0u8; 4096];
     // let mut c = Cursor::new(Vec::new());
@@ -120,10 +121,11 @@ pub fn process(socket: UdpSocket, sender: &Sender<F6>) {
                                         quote: bytes2quote(&buf[29..mlen], n_match, n_bid, n_ask),
                                         // received: Local::now().to_rfc3339(),
                                     };
-                                    match sender.send(f6) {
-                                        Ok(_) => (),
-                                        Err(e) => println!("sender error: {:?}", e),
-                                    }
+                                    sender.broadcast(f6);
+                                    // match sender.send(f6) {
+                                    //     Ok(_) => (),
+                                    //     Err(e) => println!("sender error: {:?}", e),
+                                    // }
                                     // sender.send(f6).unwrap();
                                     // rec_handler(&f6, count);
                                 }
