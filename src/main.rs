@@ -35,7 +35,7 @@ fn main() {
 
     let mut redis_outp = io::redis::RedisOutProcesser::new(&REDIS_URI);
     let mut mqtt_outp =
-        io::mqtt::MqttOutProcesser::new(&MQTT_HOST, "rust_pub1", &MQTT_USERNAME, &MQTT_PASSWORD);
+        io::mqtt::MqttOutProcesser::new(&MQTT_HOST, "rust_pub1", &MQTT_USERNAME, &MQTT_PASSWORD, 1);
     let socket = join_mcast(&MCAST_ADDR, &MCAST_IF_ADDR).unwrap();
     thread::spawn(move || redis_outp.recv_f6_process(&mut receiver2));
     thread::spawn(move || mqtt_outp.recv_f6_process(&mut receiver1));
