@@ -1,3 +1,6 @@
+use bytes_cast::BytesCast;
+use std::fmt;
+
 const BCD2STR: &[&str] = &[
     "00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15",
     "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31",
@@ -8,33 +11,68 @@ const BCD2STR: &[&str] = &[
     "96", "97", "98", "99",
 ];
 const BCD2NUM: &[u64] = &[
-    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 00, 00, 00, 00, 00, 00, 
-    10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 00, 00, 00, 00, 00, 00, 
-    20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 00, 00, 00, 00, 00, 00, 
-    30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 00, 00, 00, 00, 00, 00, 
-    40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 00, 00, 00, 00, 00, 00, 
-    50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 00, 00, 00, 00, 00, 00, 
-    60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 00, 00, 00, 00, 00, 00, 
-    70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 00, 00, 00, 00, 00, 00, 
-    80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 00, 00, 00, 00, 00, 00, 
-    90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 00, 00, 00, 00, 00, 00,
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 00, 00, 00, 00, 00, 00, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+    00, 00, 00, 00, 00, 00, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 00, 00, 00, 00, 00, 00, 30, 31,
+    32, 33, 34, 35, 36, 37, 38, 39, 00, 00, 00, 00, 00, 00, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
+    00, 00, 00, 00, 00, 00, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 00, 00, 00, 00, 00, 00, 60, 61,
+    62, 63, 64, 65, 66, 67, 68, 69, 00, 00, 00, 00, 00, 00, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79,
+    00, 00, 00, 00, 00, 00, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 00, 00, 00, 00, 00, 00, 90, 91,
+    92, 93, 94, 95, 96, 97, 98, 99, 00, 00, 00, 00, 00, 00,
 ];
 
-pub fn bcd2str(packbcd: u8) -> &'static str {
+pub const fn bcd2str(packbcd: u8) -> &'static str {
     let idx: usize = *bcd2num(packbcd) as usize;
     &BCD2STR[idx]
 }
 
-pub fn bcd2num(packbcd: u8) -> &'static u64 {
+pub const fn bcd2num(packbcd: u8) -> &'static u64 {
     &BCD2NUM[packbcd as usize]
 }
 
+// TODO const version bcdarr
 pub fn bcdarr2num(packbcd_arr: &[u8]) -> u64 {
     let mut num: u64 = 0;
     for packbcd in packbcd_arr {
         num = num * 100 + bcd2num(*packbcd);
     }
     num
+}
+
+// pub fn bcdn2num(packbcd_arr: &[u8; 2]) -> u64 {
+
+// }
+#[derive(BytesCast, Debug, PartialEq)]
+#[repr(C)]
+pub struct TwExMdTimeu6 {
+    time: [u8; 6],
+}
+
+impl TwExMdTimeu6 {
+    pub const fn hour(&self) -> u8 {
+        *bcd2num(self.time[0]) as u8
+    }
+    pub const fn minute(&self) -> u8 {
+        *bcd2num(self.time[1]) as u8
+    }
+    pub const fn second(&self) -> u8 {
+        *bcd2num(self.time[2]) as u8
+    }
+    pub const fn microsecond(&self) -> u64 {
+        *bcd2num(self.time[3]) * 10000 + *bcd2num(self.time[4]) * 100 + *bcd2num(self.time[5])
+    }
+}
+
+impl fmt::Display for TwExMdTimeu6 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{:02}:{:02}:{:02}.{:06}",
+            self.hour(),
+            self.minute(),
+            self.second(),
+            self.microsecond()
+        )
+    }
 }
 
 pub fn bcd2time(packbcd_arr: [u8; 6]) -> String {
