@@ -1,5 +1,7 @@
 use bytes_cast::BytesCast;
 use std::fmt;
+// use bcd_macro::pbcd2num;
+// use num::pow;
 
 const BCD2STR: &[&str] = &[
     "00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15",
@@ -38,9 +40,51 @@ pub fn bcdarr2num(packbcd_arr: &[u8]) -> u64 {
     num
 }
 
+// macro_rules! pbcd2num {
+//     ($n:expr, $i:expr, $arr:ident) => {
+//         // println!("{}", n);
+//         if ($i > 0) {
+//             *bcd2num($arr[$i]) * 10.pow($n - $i) + pbcd2num!($n, $i - 1, $arr)
+//         }
+
+//     };
+// }
+
+// macro_rules! pbcd2num {
+//     ($n:expr, $arr:ident) => {
+//         // println!("{}", n);
+//         *bcd2num($arr[$n-1]) + pbcd2num!($n-2, $arr)
+//     };
+// }
+// pub const fn packbcd
+// pub const fn b2num(n: usize, i: usize, bcd: u8) -> u64 {
+
+// }
+
+// pub struct PackBcd<const N: usize>([u8; N]);
+pub const fn packbcd2num<const N: usize>(packbcd: [u8; N], i: usize) -> u64 {
+    // println!("{:}", pbcd[0]);
+    // pbcd2num!(N, N, packbcd)
+    // if (i>0){
+    if i > 0 {
+        *bcd2num(packbcd[N - i]) * 10_u64.pow(((i - 1) * 2) as u32) + packbcd2num(packbcd, i - 1)
+    } else {
+        0
+    }
+    // *bcd2num(packbcd[3])
+    //     + *bcd2num(packbcd[2]) * 100
+    //     + *bcd2num(packbcd[1]) * 10000
+    //     + *bcd2num(packbcd[0]) * 1000000
+}
+
+// #[derive(Debug, PartialEq, BytesCast)]
+// #[repr(C)]
+// pub struct PackBcd<const N: usize>([u8; N]);
+
 // pub fn bcdn2num(packbcd_arr: &[u8; 2]) -> u64 {
 
 // }
+
 #[derive(BytesCast, Debug, PartialEq)]
 #[repr(C)]
 pub struct TwExMdTimeu6 {
@@ -141,11 +185,22 @@ mod tests {
     #[test]
     fn bcd2volume_test() {
         assert_eq!(2, bcd2volume([0, 0, 0, 2]));
+        assert_eq!(2020202, bcd2volume([2, 2, 2, 2]));
+        assert_eq!(2028520, bcd2volume([2, 2, 133, 32]));
     }
 
     #[test_case([0, 0, 0, 2], 2; "0, 0, 0, 2 -> 2")]
     #[test_case([0, 0, 133, 32], 8520; "0, 0, 133, 32 -> 8520")]
     fn bcd2volume_testcase(input: [u8; 4], expected: u64) {
         assert_eq!(expected, bcd2volume(input));
+    }
+
+    #[test]
+    fn packbcd2num_test() {
+        assert_eq!(2, packbcd2num([0, 0, 0, 2], 4));
+        assert_eq!(8520, packbcd2num([0, 0, 133, 32], 4));
+        assert_eq!(28520, packbcd2num([0, 2, 133, 32], 4));
+        assert_eq!(2028520, packbcd2num([2, 2, 133, 32], 4));
+        assert_eq!(202028520, packbcd2num([2, 2, 2, 133, 32], 5));
     }
 }
