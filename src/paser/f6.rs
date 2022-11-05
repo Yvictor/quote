@@ -1,6 +1,7 @@
-use crate::paser::bcd;
+use crate::paser::{bcd, head};
 use serde::{Deserialize, Serialize};
 use std::str;
+use bytes_cast::{BytesCast};
 // use chrono::prelude::{Local};
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
@@ -62,8 +63,9 @@ pub struct F6Received {
     pub received: String,
 }
 
+
+#[derive(BytesCast, Debug, PartialEq)]
 #[repr(C)]
-#[derive(Debug, PartialEq)]
 pub struct Rawf6Fixed {
     esc_code: u8,
     mlen: [u8; 2],
@@ -88,40 +90,29 @@ pub fn bytes2fcode(raw: &[u8]) -> &'static u64 {
 }
 
 pub fn bytes2header(raw: &[u8]) -> F6Header {
-    let fixed = Rawf6Fixed {
-        esc_code: raw[0],
-        mlen: raw[1..3].try_into().unwrap(),
-        cate: raw[3],
-        fcode: raw[4],
-        fver: raw[5],
-        no: raw[6..10].try_into().unwrap(),
-        symbol: raw[10..16].try_into().unwrap(),
-        time: raw[16..22].try_into().unwrap(),
-        bmp: raw[22],
-        ud: raw[23],
-        st: raw[24],
-        volsum: raw[25..29].try_into().unwrap(),
-    };
-    // println!("{:?}", fixed);
+    let (head, rest) = head::TWExMdHead::from_bytes(raw).unwrap();
+    let (base, rest) = head::TwExMdRtBase::from_bytes(rest).unwrap();
+    // println!("{:?}", head);
+    // println!("{:?}", base);
     let header = F6Header {
-        mlen: bcd::bcdarr2num(&fixed.mlen) as u8,
-        cate: *bcd::bcd2num(fixed.cate) as u8,
-        fcode: *bcd::bcd2num(fixed.fcode) as u8,
-        fver: *bcd::bcd2num(fixed.fver) as u8,
-        no: bcd::bcdarr2num(&fixed.no),
-        symbol: String::from(str::from_utf8(&fixed.symbol).unwrap()),
-        time: bcd::bcd2time(fixed.time),
-        n_match: (fixed.bmp & 0x80) >> 7,
-        n_bid: (fixed.bmp & 0x70) >> 4,
-        n_ask: (fixed.bmp & 0x0E) >> 1,
-        trice: (fixed.ud & 0x03),
-        simulation: (fixed.st & 0x80) != 0,
-        delay_open: (fixed.st & 0x40) != 0,
-        dalay_close: (fixed.st & 0x20) != 0,
-        auction: (fixed.st & 0x10) != 0,
-        opened: (fixed.st & 0x08) != 0,
-        closed: (fixed.st & 0x04) != 0,
-        volsum: bcd::bcdarr2num(&fixed.volsum),
+        mlen: head.len() as u8,
+        cate: head.market(),
+        fcode: head.fcode(),
+        fver: head.fver(),
+        no: head.seqno(),
+        symbol: String::from(base.symbol()),
+        time: base.time.to_string(),
+        n_match: base.n_match(),
+        n_bid: base.n_bid(),
+        n_ask: base.n_ask(),
+        trice: base.trice(),
+        simulation: base.simulation(),
+        delay_open: base.delay_open(),
+        dalay_close: base.delay_close(),
+        auction: base.auction(),
+        opened: base.is_open(),
+        closed: base.is_close(),
+        volsum: bcd::bcdarr2num(&rest[..4]),
     };
     // println!("{:?}", header);
     header
@@ -285,23 +276,7 @@ mod tests {
         assert_eq!(expected, bytes2f6(input))
     }
 
-    #[test]
-    fn bytes2mlen_test() {
-        assert_eq!(
-            bytes2mlen(&[
-                0x1b, 0x1, 0x31, 0x1, 0x6, 0x4, 0x0, 0x10, 0x93, 0x59, 0x39, 0x31, 0x31, 0x36,
-                0x31, 0x36, 0x9, 0x0, 0x0, 0x14, 0x8, 0x66, 0xda, 0x0, 0x8, 0x0, 0x0, 0x0, 0x6,
-                0x0, 0x0, 0x1, 0x82, 0x0, 0x0, 0x0, 0x0, 0x6, 0x0, 0x0, 0x1, 0x82, 0x0, 0x0, 0x0,
-                0x0, 0x6, 0x0, 0x0, 0x1, 0x81, 0x0, 0x0, 0x0, 0x0, 0x5, 0x0, 0x0, 0x1, 0x80, 0x0,
-                0x0, 0x0, 0x0, 0x16, 0x0, 0x0, 0x1, 0x76, 0x0, 0x0, 0x0, 0x0, 0x28, 0x0, 0x0, 0x1,
-                0x75, 0x0, 0x0, 0x0, 0x0, 0x20, 0x0, 0x0, 0x1, 0x93, 0x0, 0x0, 0x0, 0x0, 0x8, 0x0,
-                0x0, 0x1, 0x94, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x0, 0x1, 0x95, 0x0, 0x0, 0x0, 0x0,
-                0x1, 0x0, 0x0, 0x1, 0x96, 0x0, 0x0, 0x0, 0x0, 0x25, 0x0, 0x0, 0x1, 0x97, 0x0, 0x0,
-                0x0, 0x0, 0x26, 0xc6,
-            ]),
-            131
-        )
-    }
+
 
     #[test_case(&[
         0x1b, 0x1, 0x31, 0x1, 0x6, 0x4, 0x0, 0x10, 0x93, 0x59, 0x39, 0x31, 0x31, 0x36,
