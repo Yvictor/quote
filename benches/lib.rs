@@ -18,8 +18,12 @@ fn benchmark_bcd2price(bencher: &mut Bencher) {
     bencher.iter(|| bcd2price([0, 133, 32, 0, 0]));
 }
 
-fn benchmark_bcd2volume(bencher: &mut Bencher) {
+fn benchmark_bcd2volume_for(bencher: &mut Bencher) {
     bencher.iter(|| bcd2volume([0, 133, 32, 0]));
+}
+
+fn benchmark_bcd2volume_const(bencher: &mut Bencher) {
+    bencher.iter(|| packbcd2num([0, 133, 32, 0], 4));
 }
 
 fn benchmark_bytes2quote(bencher: &mut Bencher) {
@@ -109,7 +113,8 @@ benchmark_group!(
     benchmark_bcd2str,
     benchmark_bcd2num,
     benchmark_bcd2price,
-    benchmark_bcd2volume,
+    benchmark_bcd2volume_for,
+    benchmark_bcd2volume_const,
     benchmark_bytes2quote,
     benchmark_bytes2f6header,
     benchmark_bytes2f6,

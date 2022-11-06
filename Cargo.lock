@@ -93,6 +93,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c4872d67bab6358e59559027aa3b9157c53d9358c51423c17554809a8858e0f8"
 
 [[package]]
+name = "bytes-cast"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0d434f9a4ecbe987e7ccfda7274b6f82ea52c9b63742565a65cb5e8ba0f2c452"
+dependencies = [
+ "bytes-cast-derive",
+]
+
+[[package]]
+name = "bytes-cast-derive"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b13e0e8ffc91021ba28dc98b2ea82099ba4ec07655279c21bfa3313ed96708fc"
+dependencies = [
+ "proc-macro2",
+ "quote 1.0.10",
+ "syn",
+]
+
+[[package]]
 name = "cache-padded"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -682,6 +702,7 @@ version = "0.1.0"
 dependencies = [
  "bencher",
  "bus",
+ "bytes-cast",
  "chrono",
  "crossbeam-channel 0.5.1",
  "env_logger",
